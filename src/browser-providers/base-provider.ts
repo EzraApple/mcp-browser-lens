@@ -59,6 +59,22 @@ export abstract class BaseBrowserProvider implements BrowserTools {
     selectors: string[],
   ): Promise<ElementInfo[]>;
 
+  abstract scrollPage(
+    tabId: string,
+    options: {
+      scrollType: 'pixels' | 'coordinates' | 'viewport' | 'element' | 'top' | 'bottom';
+      x?: number;
+      y?: number;
+      selector?: string;
+      smooth?: boolean;
+    },
+  ): Promise<{
+    success: boolean;
+    scrollPosition: { x: number; y: number };
+    viewportSize: { width: number; height: number };
+    pageSize: { width: number; height: number };
+  }>;
+
   // Common implementations that can be overridden by subclasses
 
   /**

@@ -104,6 +104,30 @@ export interface BrowserTools {
   extractElements(tabId: string, selectors: string[]): Promise<ElementInfo[]>;
 
   /**
+   * Scroll the page in a browser tab
+   * @param tabId - Unique identifier for the target tab
+   * @param options - Scroll configuration including type and parameters
+   * @returns Promise resolving to scroll result with position information
+   * @throws TabNotFoundError if tab doesn't exist
+   * @throws CaptureError if scroll operation fails
+   */
+  scrollPage(
+    tabId: string,
+    options: {
+      scrollType: 'pixels' | 'coordinates' | 'viewport' | 'element' | 'top' | 'bottom';
+      x?: number;
+      y?: number;
+      selector?: string;
+      smooth?: boolean;
+    },
+  ): Promise<{
+    success: boolean;
+    scrollPosition: { x: number; y: number };
+    viewportSize: { width: number; height: number };
+    pageSize: { width: number; height: number };
+  }>;
+
+  /**
    * Perform a complete capture of a tab (screenshot + HTML + CSS)
    * @param tabId - Unique identifier for the target tab
    * @param options - Combined capture options

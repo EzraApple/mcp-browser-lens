@@ -197,67 +197,78 @@ export class BrowserLensServer {
       }
     );
 
-    // Capture complete tab (screenshot + HTML + CSS)
+    // Capture page content (HTML + CSS)
     this.server.tool(
-      'capture_tab',
-      'Capture a complete tab (screenshot + HTML + CSS)',
+      'capture_page_content',
+      'Extract HTML and CSS content from a browser tab. Note: This captures the content of the active tab. To capture content from a different tab, use set_active_tab first to make it active.',
       {
-        tabId: z.string().describe('ID of the tab to capture'),
+        tabId: z.string().describe('ID of the tab to extract content from'),
         browserType: z
           .enum(['chrome', 'auto'])
           .default('auto')
           .describe('Browser type that owns the tab - currently only Chrome is supported'),
-        fullPage: z.boolean().default(false).describe('Capture full page or just viewport'),
         includeHTML: z.boolean().default(true).describe('Include HTML content extraction'),
         includeCSS: z.boolean().default(false).describe('Include CSS styles extraction'),
         cssSelectors: z.array(z.string()).optional().describe('CSS selectors to extract styles for'),
+        includeStyles: z.boolean().default(true).describe('Include inline styles in HTML'),
+        includeScripts: z.boolean().default(false).describe('Include script tags in HTML'),
+        prettify: z.boolean().default(true).describe('Pretty format the output'),
       },
-      async ({ tabId, browserType, fullPage, includeHTML, includeCSS, cssSelectors }) => {
+      async ({ tabId, browserType, includeHTML, includeCSS, cssSelectors, includeStyles, includeScripts, prettify }) => {
         try {
           const tools = await this.getBrowserTools(browserType);
           
-          const options: any = {
-            screenshot: { fullPage }
-          };
+          serverLog.info(`Capturing page content from tab ${tabId}`, { includeHTML, includeCSS, selectorCount: cssSelectors?.length || 0 });
 
+          let html = null;
+          let css = null;
+
+          // Capture HTML if requested
           if (includeHTML) {
-            options.html = { prettify: true };
+            const htmlOptions = { includeStyles, includeScripts, prettify };
+            html = await tools.captureHTML(tabId, htmlOptions);
+            
+            if (ENABLE_CAPTURE_SAVING) {
+              try {
+                const filename = `html_${tabId}_${Date.now()}.html`;
+                await this.saveHTMLToFile(html, filename);
+              } catch (saveError) {
+                serverLog.error('Failed to save HTML:', saveError);
+              }
+            }
           }
 
+          // Capture CSS if requested
           if (includeCSS && cssSelectors && cssSelectors.length > 0) {
-            options.css = { selectors: cssSelectors, prettify: true };
-          }
-
-          serverLog.info(`Capturing tab ${tabId} with options:`, { fullPage, includeHTML, includeCSS, selectorCount: cssSelectors?.length || 0 });
-
-          const result = await tools.captureTab(tabId, options);
-          
-          // Save to captured directory for local inspection
-          if (ENABLE_CAPTURE_SAVING) {
-            try {
-              await this.saveCaptureToFiles(result);
-            } catch (saveError) {
-              serverLog.error('Failed to save capture files:', saveError);
-              // Don't fail the whole operation if saving fails
+            const cssOptions = { selectors: cssSelectors, prettify };
+            css = await tools.captureCSS(tabId, cssOptions);
+            
+            if (ENABLE_CAPTURE_SAVING) {
+              try {
+                const filename = `css_${tabId}_${Date.now()}.css`;
+                await this.saveCSSToFile(css, filename);
+              } catch (saveError) {
+                serverLog.error('Failed to save CSS:', saveError);
+              }
             }
           }
 
           const response = {
             success: true,
-            tabInfo: result.tabInfo,
-            timestamp: result.timestamp,
+            tabId,
+            timestamp: Date.now(),
             savedToLocal: ENABLE_CAPTURE_SAVING,
             // Include the actual captured data for the model
-            screenshot: result.screenshot || null,
-            html: result.html || null,
-            css: result.css || null,
-            // Also include metadata
-            hasScreenshot: !!result.screenshot,
-            hasHTML: !!result.html,
-            hasCSS: !!result.css
+            html: html,
+            css: css,
+            htmlLength: html ? html.length : 0,
+            cssLength: css ? css.length : 0,
+            hasHTML: !!html,
+            hasCSS: !!css,
+            htmlPreview: html ? html.substring(0, 500) + (html.length > 500 ? '...' : '') : null
           };
 
-          serverLog.success(`Tab ${tabId} captured successfully`);
+          serverLog.success(`Page content captured from tab ${tabId}`);
 
           return {
             content: [
@@ -268,13 +279,13 @@ export class BrowserLensServer {
             ],
           };
         } catch (error) {
-          serverLog.error(`Failed to capture tab ${tabId}:`, error);
+          serverLog.error(`Failed to capture page content from tab ${tabId}:`, error);
           return {
             content: [
               {
                 type: 'text',
                 text: JSON.stringify({
-                  error: 'Failed to capture tab',
+                  error: 'Failed to capture page content',
                   tabId,
                   message: error instanceof Error ? error.message : String(error),
                   timestamp: Date.now()
@@ -289,7 +300,7 @@ export class BrowserLensServer {
     // Capture screenshot only
     this.server.tool(
       'capture_screenshot',
-      'Capture a screenshot of a specific browser tab',
+      'Capture a screenshot of a browser tab. Note: This captures the content of the active tab. To screenshot a different tab, use set_active_tab first to make it active.',
       {
         tabId: z.string().describe('ID of the tab to capture'),
         browserType: z
@@ -321,6 +332,11 @@ export class BrowserLensServer {
         return {
           content: [
             {
+              type: 'image',
+              data: screenshot,
+              mimeType: `image/${format}`
+            },
+            {
               type: 'text',
               text: JSON.stringify({
                 success: true,
@@ -328,9 +344,7 @@ export class BrowserLensServer {
                 format: format,
                 savedAs: ENABLE_CAPTURE_SAVING ? filename : null,
                 savedToLocal: ENABLE_CAPTURE_SAVING,
-                timestamp: Date.now(),
-                // Include the actual screenshot data for the model
-                screenshot: screenshot
+                timestamp: Date.now()
               }, null, 2),
             },
           ],
@@ -338,55 +352,7 @@ export class BrowserLensServer {
       }
     );
 
-    // Capture HTML only
-    this.server.tool(
-      'capture_html',
-      'Extract HTML content from a browser tab',
-      {
-        tabId: z.string().describe('ID of the tab to extract HTML from'),
-        browserType: z
-          .enum(['chrome', 'auto'])
-          .default('auto')
-          .describe('Browser type that owns the tab - currently only Chrome is supported'),
-        includeStyles: z.boolean().default(true).describe('Include inline styles in the output'),
-        includeScripts: z.boolean().default(false).describe('Include script tags in the output'),
-        prettify: z.boolean().default(true).describe('Pretty format the HTML output'),
-      },
-      async ({ tabId, browserType, includeStyles, includeScripts, prettify }) => {
-        const tools = await this.getBrowserTools(browserType);
-        const options = { includeStyles, includeScripts, prettify };
-        const html = await tools.captureHTML(tabId, options);
-        
-        // Save to captured directory
-        const filename = `html_${tabId}_${Date.now()}.html`;
-        if (ENABLE_CAPTURE_SAVING) {
-          try {
-            await this.saveHTMLToFile(html, filename);
-          } catch (saveError) {
-            serverLog.error('Failed to save HTML:', saveError);
-          }
-        }
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                tabId: tabId,
-                htmlLength: html.length,
-                savedAs: ENABLE_CAPTURE_SAVING ? filename : null,
-                savedToLocal: ENABLE_CAPTURE_SAVING,
-                timestamp: Date.now(),
-                preview: html.substring(0, 500) + (html.length > 500 ? '...' : ''),
-                // Include the full HTML content for the model
-                html: html
-              }, null, 2),
-            },
-          ],
-        };
-      }
-    );
 
     // Set active tab
     this.server.tool(
@@ -422,7 +388,7 @@ export class BrowserLensServer {
     // Extract elements from a tab
     this.server.tool(
       'extract_elements',
-      'Extract detailed information about elements using CSS selectors',
+      'Extract detailed information about elements using CSS selectors. Note: This extracts elements from the active tab. To extract from a different tab, use set_active_tab first to make it active.',
       {
         tabId: z.string().describe('ID of the tab to extract elements from'),
         selectors: z.array(z.string()).describe('CSS selectors for elements to extract'),
@@ -473,6 +439,66 @@ export class BrowserLensServer {
       }
     );
 
+    // Scroll page in a browser tab
+    this.server.tool(
+      'scroll_page',
+      'Scroll the page in a browser tab using various methods. Note: This scrolls the active tab. To scroll a different tab, use set_active_tab first.',
+      {
+        tabId: z.string().describe('ID of the tab to scroll'),
+        scrollType: z
+          .enum(['pixels', 'coordinates', 'viewport', 'element', 'top', 'bottom'])
+          .describe(
+            'Type of scroll: pixels (relative), coordinates (absolute), viewport (page up/down), element (scroll to element), top (scroll to top), bottom (scroll to bottom)'
+          ),
+        x: z.number().optional().describe('X coordinate or offset (for pixels/coordinates scrolling)'),
+        y: z.number().optional().describe('Y coordinate or offset (for pixels/coordinates/viewport scrolling)'),
+        selector: z.string().optional().describe('CSS selector for element scrolling (required for element type)'),
+        smooth: z.boolean().default(true).describe('Use smooth scrolling animation'),
+        browserType: z
+          .enum(['chrome', 'auto'])
+          .default('auto')
+          .describe('Browser type that owns the tab - currently only Chrome is supported'),
+      },
+      async ({ tabId, scrollType, x, y, selector, smooth, browserType }) => {
+        try {
+          const tools = await this.getBrowserTools(browserType);
+          
+          // Build options object with only defined values
+          const scrollOptions: any = { scrollType, smooth };
+          if (x !== undefined) scrollOptions.x = x;
+          if (y !== undefined) scrollOptions.y = y;
+          if (selector !== undefined) scrollOptions.selector = selector;
+          
+          const result = await tools.scrollPage(tabId, scrollOptions);
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          serverLog.error(`Failed to scroll page in tab ${tabId}:`, error);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  error: 'Failed to scroll page',
+                  tabId,
+                  scrollType,
+                  message: error instanceof Error ? error.message : String(error),
+                  timestamp: Date.now()
+                }, null, 2),
+              },
+            ],
+          };
+        }
+      }
+    );
+
     // Get browser capabilities
     this.server.tool(
       'get_browser_capabilities',
@@ -504,41 +530,6 @@ export class BrowserLensServer {
   }
 
   // Helper methods for saving captured content locally
-  private async saveCaptureToFiles(result: any): Promise<void> {
-    if (!ENABLE_CAPTURE_SAVING) return;
-
-    const timestamp = result.timestamp;
-    const tabId = result.tabInfo.id;
-    const errors: string[] = [];
-
-    try {
-      if (result.screenshot) {
-        await this.saveScreenshotToFile(result.screenshot, `capture_${tabId}_${timestamp}.png`);
-      }
-    } catch (error) {
-      errors.push(`Screenshot: ${error instanceof Error ? error.message : String(error)}`);
-    }
-
-    try {
-      if (result.html) {
-        await this.saveHTMLToFile(result.html, `capture_${tabId}_${timestamp}.html`);
-      }
-    } catch (error) {
-      errors.push(`HTML: ${error instanceof Error ? error.message : String(error)}`);
-    }
-
-    try {
-      if (result.css) {
-        await this.saveCSSToFile(result.css, `capture_${tabId}_${timestamp}.css`);
-      }
-    } catch (error) {
-      errors.push(`CSS: ${error instanceof Error ? error.message : String(error)}`);
-    }
-
-    if (errors.length > 0) {
-      throw new Error(`Failed to save some capture files: ${errors.join(', ')}`);
-    }
-  }
 
   private async saveScreenshotToFile(screenshot: string, filename: string): Promise<void> {
     if (!ENABLE_CAPTURE_SAVING) {

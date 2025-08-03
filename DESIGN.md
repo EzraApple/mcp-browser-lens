@@ -80,11 +80,12 @@ const capture = await browserTools.screenshot(tabId);
 ### Core Interface Contract
 Every browser provider must implement:
 - `listTabs()` - Get all open tabs
-- `screenshot(tabId)` - Capture tab visually  
+- `captureScreenshot(tabId)` - Capture tab screenshots
 - `captureHTML(tabId)` - Extract DOM content
 - `captureCSS(tabId, selectors)` - Extract computed styles
-- `setActiveTab(tabId)` - Switch to an existing tab (safer than navigation)
 - `extractElements(tabId, selectors)` - Get element details
+- `scrollPage(tabId, options)` - Scroll pages with multiple methods
+- `setActiveTab(tabId)` - Switch to an existing tab (safer than navigation)
 - `getCapabilities()` - Report what this browser supports
 
 ## Project Structure
@@ -147,11 +148,11 @@ mcp-browser-lens/
 - Use Chrome DevTools Protocol (CDP) on port 9222
 - Complete implementation of all 7 MCP tools:
   - `list_tabs` - Show available browser tabs
-  - `capture_tab` - Complete screenshot + HTML + CSS extraction
   - `capture_screenshot` - High-quality tab screenshots
-  - `capture_html` - DOM content extraction
-  - `set_active_tab` - Safe tab switching (no arbitrary navigation)
+  - `capture_page_content` - HTML + CSS content extraction
   - `extract_elements` - Extract detailed element information from selectors
+  - `scroll_page` - Page scrolling with multiple methods (pixels, coordinates, viewport, element, top, bottom)
+  - `set_active_tab` - Safe tab switching (no arbitrary navigation)
   - `get_browser_capabilities` - Chrome capability reporting
 - Foundation for future browser expansion once Chrome is complete
 
@@ -176,10 +177,12 @@ Key considerations:
 
 Core MCP Tools:
 - `list_tabs` - Show available browser tabs
-- `capture_tab` - Screenshot + HTML + CSS extraction
-- `compare_tabs` - Side-by-side tab comparison
-- `extract_design_elements` - CSS pattern analysis
+- `capture_screenshot` - Dedicated screenshot capture
+- `capture_page_content` - HTML + CSS extraction
+- `extract_elements` - Element information extraction
+- `scroll_page` - Page scrolling with multiple methods
 - `set_active_tab` - Safe tab switching control
+- `get_browser_capabilities` - Browser capability reporting
 
 ### 4. macOS-First Platform Support
 **Responsibility**: Perfect Chrome integration on macOS, with foundation for future expansion
@@ -269,7 +272,7 @@ Platform priorities:
 2. Implement comprehensive Chrome debugging guidance
 3. Perfect Chrome performance and reliability
 4. Complete documentation and troubleshooting for Chrome
-5. Validate all 7 tools work perfectly with Chrome before expanding
+5. Validate all 6 tools work perfectly with Chrome before expanding
 
 ### Phase 4: Multi-Browser Expansion (Post-Chrome)
 1. Add Safari provider using WebKit Remote Inspector Protocol
@@ -294,4 +297,4 @@ Platform priorities:
 - **Development Experience**: Seamless MCP integration and testing in Cursor with Chrome
 - **Foundation for Future**: Extensible architecture ready for Safari, Arc, Firefox after Chrome completion
 
-This design prioritizes Chrome DevTools Protocol mastery and complete 7-tool implementation before expanding to other browsers, ensuring a solid foundation for future multi-browser support.
+This design prioritizes Chrome DevTools Protocol mastery and complete 6-tool implementation before expanding to other browsers, ensuring a solid foundation for future multi-browser support.
