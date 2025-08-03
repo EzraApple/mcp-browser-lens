@@ -4,10 +4,7 @@
  * MCP Browser Lens CLI Entry Point
  * Command-line interface for starting the MCP server
  * 
- * CAPTURE SAVING FEATURE:
- * Captured screenshots/HTML/CSS are saved to local 'captured/' directory (enabled by default).
- * Files are automatically cleaned up when the server shuts down.
- * All captured data is also returned to the model for analysis.
+ * All captured data is returned to the model for analysis.
  */
 
 import { Command } from 'commander';

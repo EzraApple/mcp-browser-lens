@@ -28,7 +28,7 @@ export abstract class BaseBrowserProvider implements BrowserTools {
   constructor(config: BrowserToolsConfig = {}) {
     this.config = {
       timeout: 30000,
-      captureDirectory: "captured",
+  
       debug: false,
       ...config,
     };
@@ -182,7 +182,7 @@ export abstract class BaseBrowserProvider implements BrowserTools {
     promise: Promise<T>,
     timeoutMs?: number,
   ): Promise<T> {
-    const timeout = timeoutMs || this.config.timeout || 30000;
+    const timeout = timeoutMs ?? this.config.timeout ?? 30000;
 
     return Promise.race([
       promise,

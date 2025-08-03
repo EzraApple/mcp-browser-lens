@@ -12,7 +12,6 @@
 
 **Development-First Approach**:
 - Test MCP tools directly in Cursor during development
-- Inspect captured outputs locally in `captured/` directory  
 - Focus on **Chrome first**: Perfect Chrome DevTools Protocol integration before expanding
 - Complete all 7 MCP tools with Chrome before moving to other browsers
 
@@ -96,7 +95,7 @@ mcp-browser-lens/
 ├── tsconfig.json                  # TypeScript configuration
 ├── DESIGN.md                      # This document
 ├── README.md                      # User documentation
-├── captured/                      # Local testing outputs (screenshots, HTML, CSS)
+
 │   ├── screenshots/               # PNG captures for inspection
 │   ├── html/                      # Extracted HTML content
 │   └── css/                       # Extracted CSS styles
@@ -255,7 +254,7 @@ Platform priorities:
 ## Development Phases
 
 ### Phase 1: Chrome Foundation & MCP Integration
-1. Set up project structure and build system with `captured/` directory
+1. Set up project structure and build system
 2. Build MCP server with Chrome-focused tool definitions
 3. Add to local `mcp.json` configuration for Cursor integration
 4. Implement BrowserTools interface with Chrome provider focus
@@ -263,7 +262,7 @@ Platform priorities:
 ### Phase 2: Chrome DevTools Protocol Mastery
 1. Perfect Chrome provider with all 7 MCP tools working flawlessly
 2. Implement robust capability detection for Chrome debugging setup
-3. Complete HTML, CSS, and screenshot extraction → validate in `captured/`
+3. Complete HTML, CSS, and screenshot extraction → validate output
 4. Add element extraction and safe tab switching
 5. Perfect error handling and connection management for Chrome
 
@@ -283,7 +282,7 @@ Platform priorities:
 
 ### Local Development Workflow
 - **MCP Integration First**: Add server to `mcp.json` immediately for testing
-- **Captured Outputs**: Write all screenshots to `captured/screenshots/`, HTML to `captured/html/`, CSS to `captured/css/`
+
 - **Chrome-First Testing**: Focus exclusively on Chrome DevTools Protocol
 - **Iterative Validation**: Use Cursor/Claude to validate Chrome captures and refine all 7 tools
 - **macOS Chrome Perfection**: Complete Chrome functionality before expanding to other browsers

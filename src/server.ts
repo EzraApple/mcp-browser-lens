@@ -6,20 +6,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 import { useBrowserTools } from '@/core/browser-factory.js';
 import { BrowserType } from '@/interfaces/types.js';
 import { BrowserTools } from '@/interfaces/browser-tools.js';
 import { serverLog } from '@/utils/logger.js';
 
-// Feature flag for development mode captures - enabled for development
-const ENABLE_CAPTURE_SAVING = true;
-
 export class BrowserLensServer {
   private server: McpServer;
   private browserTools: BrowserTools | null = null;
-  private captureDir: string = 'captured';
   private isShuttingDown: boolean = false;
 
   constructor() {
@@ -35,12 +29,6 @@ export class BrowserLensServer {
 
     this.setupTools();
     this.setupShutdownHandlers();
-    
-    if (ENABLE_CAPTURE_SAVING) {
-      this.initializeCaptureDirectory().catch(error => {
-        serverLog.error('Failed to initialize capture directory:', error);
-      });
-    }
   }
 
   private async getBrowserTools(browserType?: BrowserType): Promise<BrowserTools> {
@@ -57,30 +45,7 @@ export class BrowserLensServer {
     return this.browserTools;
   }
 
-  /**
-   * Initialize capture directory structure
-   */
-  private async initializeCaptureDirectory(): Promise<void> {
-    if (!ENABLE_CAPTURE_SAVING) return;
 
-    try {
-      const directories = [
-        this.captureDir,
-        path.join(this.captureDir, 'screenshots'),
-        path.join(this.captureDir, 'html'),
-        path.join(this.captureDir, 'css')
-      ];
-
-      for (const dir of directories) {
-        await fs.mkdir(dir, { recursive: true });
-      }
-
-      serverLog.success(`Capture directories initialized at: ${this.captureDir}`);
-    } catch (error) {
-      serverLog.error('Failed to create capture directories:', error);
-      throw error;
-    }
-  }
 
   /**
    * Setup shutdown handlers for cleanup
@@ -99,10 +64,7 @@ export class BrowserLensServer {
           serverLog.info('Browser tools disconnected');
         }
 
-        // Clean up capture directory if enabled
-        if (ENABLE_CAPTURE_SAVING) {
-          await this.cleanupCaptureDirectory();
-        }
+
 
         serverLog.success('Graceful shutdown completed');
         process.exit(0);
@@ -129,22 +91,7 @@ export class BrowserLensServer {
     });
   }
 
-  /**
-   * Clean up capture directory on shutdown
-   */
-  private async cleanupCaptureDirectory(): Promise<void> {
-    if (!ENABLE_CAPTURE_SAVING) return;
 
-    try {
-      const exists = await fs.access(this.captureDir).then(() => true).catch(() => false);
-      if (exists) {
-        await fs.rm(this.captureDir, { recursive: true, force: true });
-        serverLog.info(`Cleaned up capture directory: ${this.captureDir}`);
-      }
-    } catch (error) {
-      serverLog.error('Failed to cleanup capture directory:', error);
-    }
-  }
 
   private setupTools(): void {
     // List all open browser tabs
@@ -228,14 +175,7 @@ export class BrowserLensServer {
             const htmlOptions = { includeStyles, includeScripts, prettify };
             html = await tools.captureHTML(tabId, htmlOptions);
             
-            if (ENABLE_CAPTURE_SAVING) {
-              try {
-                const filename = `html_${tabId}_${Date.now()}.html`;
-                await this.saveHTMLToFile(html, filename);
-              } catch (saveError) {
-                serverLog.error('Failed to save HTML:', saveError);
-              }
-            }
+
           }
 
           // Capture CSS if requested
@@ -243,21 +183,13 @@ export class BrowserLensServer {
             const cssOptions = { selectors: cssSelectors, prettify };
             css = await tools.captureCSS(tabId, cssOptions);
             
-            if (ENABLE_CAPTURE_SAVING) {
-              try {
-                const filename = `css_${tabId}_${Date.now()}.css`;
-                await this.saveCSSToFile(css, filename);
-              } catch (saveError) {
-                serverLog.error('Failed to save CSS:', saveError);
-              }
-            }
+
           }
 
           const response = {
             success: true,
             tabId,
             timestamp: Date.now(),
-            savedToLocal: ENABLE_CAPTURE_SAVING,
             // Include the actual captured data for the model
             html: html,
             css: css,
@@ -318,16 +250,6 @@ export class BrowserLensServer {
           options.quality = quality;
         }
         const screenshot = await tools.captureScreenshot(tabId, options);
-        
-        // Save to captured directory
-        const filename = `screenshot_${tabId}_${Date.now()}.${format}`;
-        if (ENABLE_CAPTURE_SAVING) {
-          try {
-            await this.saveScreenshotToFile(screenshot, filename);
-          } catch (saveError) {
-            serverLog.error('Failed to save screenshot:', saveError);
-          }
-        }
 
         return {
           content: [
@@ -342,8 +264,6 @@ export class BrowserLensServer {
                 success: true,
                 tabId: tabId,
                 format: format,
-                savedAs: ENABLE_CAPTURE_SAVING ? filename : null,
-                savedToLocal: ENABLE_CAPTURE_SAVING,
                 timestamp: Date.now()
               }, null, 2),
             },
@@ -529,61 +449,7 @@ export class BrowserLensServer {
     );
   }
 
-  // Helper methods for saving captured content locally
 
-  private async saveScreenshotToFile(screenshot: string, filename: string): Promise<void> {
-    if (!ENABLE_CAPTURE_SAVING) {
-      serverLog.debug(`Capture saving disabled - would save screenshot: ${filename}`);
-      return;
-    }
-
-    try {
-      const filePath = path.join(this.captureDir, 'screenshots', filename);
-      
-      // Convert base64 to buffer and save
-      const buffer = Buffer.from(screenshot, 'base64');
-      await fs.writeFile(filePath, buffer);
-      
-      serverLog.success(`Screenshot saved: ${filePath}`);
-    } catch (error) {
-      serverLog.error(`Failed to save screenshot ${filename}:`, error);
-      throw error;
-    }
-  }
-
-  private async saveHTMLToFile(html: string, filename: string): Promise<void> {
-    if (!ENABLE_CAPTURE_SAVING) {
-      serverLog.debug(`Capture saving disabled - would save HTML: ${filename}`);
-      return;
-    }
-
-    try {
-      const filePath = path.join(this.captureDir, 'html', filename);
-      await fs.writeFile(filePath, html, 'utf8');
-      
-      serverLog.success(`HTML saved: ${filePath}`);
-    } catch (error) {
-      serverLog.error(`Failed to save HTML ${filename}:`, error);
-      throw error;
-    }
-  }
-
-  private async saveCSSToFile(css: string, filename: string): Promise<void> {
-    if (!ENABLE_CAPTURE_SAVING) {
-      serverLog.debug(`Capture saving disabled - would save CSS: ${filename}`);
-      return;
-    }
-
-    try {
-      const filePath = path.join(this.captureDir, 'css', filename);
-      await fs.writeFile(filePath, css, 'utf8');
-      
-      serverLog.success(`CSS saved: ${filePath}`);
-    } catch (error) {
-      serverLog.error(`Failed to save CSS ${filename}:`, error);
-      throw error;
-    }
-  }
 
   async run(): Promise<void> {
     const transport = new StdioServerTransport();

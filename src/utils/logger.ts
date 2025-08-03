@@ -3,7 +3,7 @@
  * Provides development-only logging to keep production output clean
  */
 
-type LogLevel = "debug" | "info" | "warn" | "error";
+
 
 class Logger {
   private isDevelopment: boolean;

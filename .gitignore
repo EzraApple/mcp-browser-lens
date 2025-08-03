@@ -67,10 +67,7 @@ Thumbs.db
 logs
 *.log
 
-# Captured outputs (local testing)
-captured/screenshots/
-captured/html/
-captured/css/
+
 
 # TypeScript cache
 *.tsbuildinfo

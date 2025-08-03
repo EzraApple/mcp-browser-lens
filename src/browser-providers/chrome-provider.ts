@@ -31,7 +31,7 @@ export class ChromeProvider extends BaseBrowserProvider {
 
   constructor(config: BrowserToolsConfig = {}) {
     super(config);
-    this.debugPort = config.customPorts?.chrome || 9222;
+    this.debugPort = config.customPorts?.chrome ?? 9222;
   }
 
   getBrowserType(): BrowserType {
@@ -245,10 +245,10 @@ export class ChromeProvider extends BaseBrowserProvider {
 
       // Prepare screenshot parameters
       const screenshotParams: any = {
-        format: options.format || "png",
+        format: options.format ?? "png",
         quality:
-          options.quality || (options.format === "jpeg" ? 80 : undefined),
-        captureBeyondViewport: options.fullPage || false,
+          options.quality ?? (options.format === "jpeg" ? 80 : undefined),
+        captureBeyondViewport: options.fullPage ?? false,
       };
 
       // Add clip if specified
@@ -258,7 +258,7 @@ export class ChromeProvider extends BaseBrowserProvider {
           y: options.clip.y,
           width: options.clip.width,
           height: options.clip.height,
-          scale: options.devicePixelRatio || 1,
+          scale: options.devicePixelRatio ?? 1,
         };
       }
 
@@ -761,6 +761,182 @@ export class ChromeProvider extends BaseBrowserProvider {
         `Failed to extract elements: ${error instanceof Error ? error.message : String(error)}`,
         tabId,
         "elements",
+      );
+    } finally {
+      // Clean up tab connection
+      if (tabClient) {
+        try {
+          await tabClient.close();
+        } catch (error) {
+          chromeLog.debug(`Error closing tab connection: ${error}`);
+        }
+      }
+    }
+  }
+
+  /**
+   * Scroll the page using various methods
+   * @param tabId - ID of the tab to scroll
+   * @param options - Scroll options including type and parameters
+   */
+  async scrollPage(
+    tabId: string,
+    options: {
+      scrollType: 'pixels' | 'coordinates' | 'viewport' | 'element' | 'top' | 'bottom';
+      x?: number;
+      y?: number;
+      selector?: string;
+      smooth?: boolean;
+    },
+  ): Promise<{
+    success: boolean;
+    scrollPosition: { x: number; y: number };
+    viewportSize: { width: number; height: number };
+    pageSize: { width: number; height: number };
+  }> {
+    this.assertConnected();
+    await this.findTabById(tabId);
+
+    let tabClient: any = null;
+    try {
+      chromeLog.debug(`Scrolling page in tab ${tabId} with options:`, options);
+
+      // Connect to the specific tab
+      tabClient = await this.connectToTab(tabId);
+
+      // Build JavaScript expression based on scroll type
+      let scrollExpression = '';
+      const smooth = options.smooth !== false ? 'smooth' : 'auto';
+
+      switch (options.scrollType) {
+        case 'pixels':
+          scrollExpression = `
+            window.scrollBy({
+              left: ${options.x ?? 0},
+              top: ${options.y ?? 0},
+              behavior: '${smooth}'
+            });
+          `;
+          break;
+
+        case 'coordinates':
+          scrollExpression = `
+            window.scrollTo({
+              left: ${options.x ?? 0},
+              top: ${options.y ?? 0},
+              behavior: '${smooth}'
+            });
+          `;
+          break;
+
+        case 'viewport':
+          // Scroll by viewport height (page up/down)
+          const direction = (options.y ?? 0) < 0 ? -1 : 1;
+          scrollExpression = `
+            window.scrollBy({
+              left: 0,
+              top: ${direction} * window.innerHeight,
+              behavior: '${smooth}'
+            });
+          `;
+          break;
+
+        case 'element':
+          if (!options.selector) {
+            throw new Error('Selector is required for element scroll type');
+          }
+          scrollExpression = `
+            const element = document.querySelector(${JSON.stringify(options.selector)});
+            if (element) {
+              element.scrollIntoView({ behavior: '${smooth}', block: 'start' });
+            } else {
+              throw new Error('Element not found for selector: ${options.selector}');
+            }
+          `;
+          break;
+
+        case 'top':
+          scrollExpression = `
+            window.scrollTo({
+              left: 0,
+              top: 0,
+              behavior: '${smooth}'
+            });
+          `;
+          break;
+
+        case 'bottom':
+          scrollExpression = `
+            window.scrollTo({
+              left: 0,
+              top: document.body.scrollHeight,
+              behavior: '${smooth}'
+            });
+          `;
+          break;
+
+        default:
+          throw new Error(`Unsupported scroll type: ${options.scrollType}`);
+      }
+
+      // Execute scroll and get position information
+      const fullExpression = `
+        (() => {
+          try {
+            ${scrollExpression}
+            
+            // Wait a bit for scroll to complete, then return position info
+            return new Promise(resolve => {
+              setTimeout(() => {
+                resolve({
+                  scrollPosition: {
+                    x: window.pageXOffset || document.documentElement.scrollLeft,
+                    y: window.pageYOffset || document.documentElement.scrollTop
+                  },
+                  viewportSize: {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                  },
+                  pageSize: {
+                    width: Math.max(document.body.scrollWidth, document.documentElement.scrollWidth),
+                    height: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
+                  }
+                });
+              }, 100);
+            });
+          } catch (error) {
+            throw new Error('Scroll operation failed: ' + error.message);
+          }
+        })()
+      `;
+
+      const result = await tabClient.Runtime.evaluate({
+        expression: fullExpression,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+
+      if (result.exceptionDetails) {
+        throw new Error(
+          `Scroll execution failed: ${result.exceptionDetails.exception?.description ?? 'Unknown error'}`,
+        );
+      }
+
+      const scrollResult = result.result.value;
+      chromeLog.success(
+        `Page scrolled in tab ${tabId}, position: (${scrollResult.scrollPosition.x}, ${scrollResult.scrollPosition.y})`,
+      );
+
+      return {
+        success: true,
+        ...scrollResult,
+      };
+    } catch (error) {
+      chromeLog.error(`Scroll operation failed for tab ${tabId}:`, error);
+      throw new CaptureError(
+        `Failed to scroll page: ${error instanceof Error ? error.message : String(error)}`,
+        tabId,
+        "scroll",
       );
     } finally {
       // Clean up tab connection

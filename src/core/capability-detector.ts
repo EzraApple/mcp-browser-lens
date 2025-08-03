@@ -91,7 +91,7 @@ async function detectSingleBrowser(
       const result = {
         type: "chrome" as BrowserType,
         name: "Google Chrome",
-        version: versionInfo?.Browser?.split("/")?.[1] || "Unknown",
+        version: versionInfo?.Browser?.split("/")?.[1] ?? "Unknown",
         executablePath: undefined,
         isRunning: true,
         debugPort: debugPort,
@@ -209,21 +209,7 @@ Or add --remote-debugging-port=9222 to your Chrome startup script.`;
   }
 }
 
-/**
- * Get Chrome debugging port
- * @returns Chrome DevTools Protocol port (always 9222)
- */
-function getChromeDebugPort(): number {
-  return 9222; // Chrome DevTools Protocol standard port
-}
 
-/**
- * Get Chrome display name
- * @returns Human-readable Chrome name
- */
-function getChromeDisplayName(): string {
-  return "Google Chrome";
-}
 
 /**
  * Get Chrome-specific platform capabilities for the current system

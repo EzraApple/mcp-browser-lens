@@ -162,8 +162,7 @@ export interface BrowserToolsConfig {
   preferredBrowser?: BrowserType;
   /** Timeout for operations in milliseconds */
   timeout?: number;
-  /** Directory to save captured outputs */
-  captureDirectory?: string;
+  
   /** Enable debug logging */
   debug?: boolean;
   /** Custom browser executable paths */
