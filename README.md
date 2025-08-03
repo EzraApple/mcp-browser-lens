@@ -4,6 +4,8 @@
 
 Turn any webpage into AI context: "Look at this Stripe pricing page and help me build something similar" or "Compare my localhost dashboard with this Notion page design".
 
+**Chrome Only for now**
+
 ## Features
 
 ### 🖼️ Visual Browser Access
