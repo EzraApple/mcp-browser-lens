@@ -161,11 +161,3 @@ Then use the local version in your `mcp.json`:
 }
 ```
 ---
-
-## 🆘 Need Help?
-
-- **Review logs**: Your AI assistant console shows detailed MCP operation logs
-- **Test basic connection**: Try `"List my browser tabs"` first - this will initialize Chrome if needed
-- **Check Chrome setup**: Ask your AI assistant to `"initialize Chrome debugging"` if you encounter issues
-
-**Happy browsing with AI! 🎉**
