@@ -158,13 +158,14 @@ program
       // MCP capabilities
       console.error('MCP Tools Available:');
       const tools = [
-        'list_tabs - List all open browser tabs',
-        'capture_tab - Complete tab capture (screenshot + HTML + CSS)',
-        'capture_screenshot - Screenshot only',
-        'capture_html - HTML content extraction',
-        'navigate_tab - Navigate tab to new URL',
-        'detect_localhost_servers - Find development servers',
-        'get_browser_capabilities - Check browser features'
+        'initialize_chrome_debugging - Start Chrome with debugging enabled (called automatically when needed)',
+        'list_tabs - List all open browser tabs with titles and URLs',
+        'capture_page_content - Extract HTML and CSS content from browser tabs',
+        'capture_screenshot - Take high-quality screenshots of specific tabs',
+        'extract_elements - Get detailed element information using CSS selectors',
+        'scroll_page - Scroll pages (pixels, viewport, to elements, top/bottom)',
+        'set_active_tab - Switch to a specific tab safely',
+        'get_browser_capabilities - Check what browser features are available'
       ];
       tools.forEach(tool => {
         console.error(`  ${tool}`);
