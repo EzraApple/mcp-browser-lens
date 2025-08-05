@@ -83,42 +83,6 @@ Once configured, you can use natural language commands like:
 - **Google Chrome** (any recent version)
 - **macOS, Windows, or Linux**
 
-## 🔧 Troubleshooting
-
-### 🚫 **Chrome Initialization Issues**
-
-**Problem**: "Chrome debugging initialization failed" errors
-```bash
-# Check if Chrome is installed in standard locations:
-ls -la "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-
-# Or try manual launch:
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
-```
-
-**Problem**: Permission denied when initializing Chrome
-- On macOS, grant Terminal permission to control applications in System Preferences → Security & Privacy
-- Try manually starting Chrome with debugging first
-
-### 🔌 **Connection Issues**
-
-**Problem**: "Browser not detected" errors
-1. Check Chrome debugging port: `curl http://localhost:9222/json/version`
-2. Ask your AI assistant to try initializing Chrome debugging
-3. Manually quit Chrome (Cmd+Q) and let MCP initialize it fresh
-
-**Problem**: Tabs not showing up
-- Make sure Chrome is the active application
-- Try refreshing the webpage
-- Check that you have tabs actually open in Chrome
-
-### ⚡ **Performance Issues**
-
-**Problem**: Slow screenshot capture
-- Close unnecessary browser tabs
-- Ensure localhost development servers are responsive
-- Try smaller screenshot areas using element selectors
-
 ## 👩‍💻 **Development & Contributing**
 
 Want to contribute or run locally? 
