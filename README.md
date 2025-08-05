@@ -160,16 +160,6 @@ Then use the local version in your `mcp.json`:
   }
 }
 ```
-
-## 🚀 What's Next?
-
-### 🔮 **Future Enhancements**
-- **Multi-tab Screenshots**: Capture multiple tabs simultaneously
-- **Video Recording**: Record interactions and page changes
-- **Enhanced Element Detection**: AI-powered element recognition
-- **Design System Analysis**: Automatic component library extraction
-- **Performance Monitoring**: Page load and interaction metrics
-
 ---
 
 ## 🆘 Need Help?
