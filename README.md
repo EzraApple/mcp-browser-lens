@@ -25,11 +25,12 @@ Just add this to your `mcp.json` and restart your AI assistant:
 
 When you restart your AI assistant (Cursor, etc.):
 
-✅ **MCP Browser Lens will automatically:**
-- Detect if Chrome is running with debugging
-- Launch Chrome with debugging enabled if needed  
-- Open a beautiful welcome page explaining all capabilities
-- Be ready for AI commands immediately
+✅ **MCP Browser Lens will be ready to:**
+- Accept AI commands for browser automation
+- Initialize Chrome debugging when first needed
+- Capture, analyze, and extract web content on demand
+
+**Smart Chrome Management**: Your AI assistant will automatically initialize Chrome debugging when it first needs to interact with browser tabs.
 
 ## 💬 Example AI Commands
 
@@ -55,9 +56,10 @@ Once configured, you can use natural language commands like:
 
 | Tool | Description |
 |------|-------------|
+| `initialize_chrome_debugging` | Start Chrome with debugging enabled (called automatically when needed) |
 | `list_tabs` | List all open browser tabs with titles and URLs |
+| `capture_page_content` | Extract HTML and CSS content from browser tabs |
 | `capture_screenshot` | Take high-quality screenshots of specific tabs |
-| `capture_page_content` | Extract HTML and CSS content from pages |  
 | `extract_elements` | Get detailed element information using CSS selectors |
 | `scroll_page` | Scroll pages (pixels, viewport, to elements, top/bottom) |
 | `set_active_tab` | Switch to a specific tab safely |
@@ -66,14 +68,14 @@ Once configured, you can use natural language commands like:
 ## 🌐 Browser Support
 
 ### ✅ **Currently Supported**
-- **Chrome/Chromium** - Full support with auto-launch and zero configuration
+- **Chrome/Chromium** - Full support with intelligent debugging initialization
 
 ### 🔄 **Future Support** (Optional)
 - **Safari** - WebKit Remote Inspector integration (complex setup)
-- **Firefox/Zen** - Gecko debugging protocol support (different architecture)
+- **Firefox/Zen** - Gecko debugging protocol support (different architecture)  
 - **Arc Browser** - Chromium-based support (should work with Chrome provider)
 
-> **Note**: Chrome provides the best debugging experience and widest compatibility. Other browsers may be added based on user demand, but Chrome-first ensures the most reliable experience.
+> **Note**: Chrome provides the best debugging experience and widest compatibility. MCP Browser Lens intelligently manages Chrome debugging setup, launching Chrome with debugging when needed.
 
 ## 🖥️ System Requirements
 
@@ -83,9 +85,9 @@ Once configured, you can use natural language commands like:
 
 ## 🔧 Troubleshooting
 
-### 🚫 **Chrome Auto-Launch Issues**
+### 🚫 **Chrome Initialization Issues**
 
-**Problem**: Chrome doesn't launch automatically
+**Problem**: "Chrome debugging initialization failed" errors
 ```bash
 # Check if Chrome is installed in standard locations:
 ls -la "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -94,15 +96,16 @@ ls -la "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
 ```
 
-**Problem**: Permission denied when launching Chrome
+**Problem**: Permission denied when initializing Chrome
 - On macOS, grant Terminal permission to control applications in System Preferences → Security & Privacy
+- Try manually starting Chrome with debugging first
 
 ### 🔌 **Connection Issues**
 
 **Problem**: "Browser not detected" errors
 1. Check Chrome debugging port: `curl http://localhost:9222/json/version`
-2. Restart your AI assistant to trigger auto-launch
-3. Manually quit Chrome (Cmd+Q) and let MCP relaunch it
+2. Ask your AI assistant to try initializing Chrome debugging
+3. Manually quit Chrome (Cmd+Q) and let MCP initialize it fresh
 
 **Problem**: Tabs not showing up
 - Make sure Chrome is the active application
@@ -171,8 +174,8 @@ Then use the local version in your `mcp.json`:
 
 ## 🆘 Need Help?
 
-- **Check the welcome page**: Opens automatically in Chrome with detailed explanations
 - **Review logs**: Your AI assistant console shows detailed MCP operation logs
-- **Test basic connection**: Try `"List my browser tabs"` first to verify everything works
+- **Test basic connection**: Try `"List my browser tabs"` first - this will initialize Chrome if needed
+- **Check Chrome setup**: Ask your AI assistant to `"initialize Chrome debugging"` if you encounter issues
 
 **Happy browsing with AI! 🎉**
