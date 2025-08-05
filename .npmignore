@@ -1,0 +1,52 @@
+# Source files (only publish built dist/)
+src/
+tsconfig.json
+eslint.config.js
+
+# Development dependencies
+.git/
+.gitignore
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing and development
+tests/
+coverage/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+.eslintcache
+.nyc_output
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts we don't need
+*.tsbuildinfo
+*.map
+
+# Environment and local config
+.env*
+
+# Documentation (keep README.md but exclude docs/)
+docs/
+DESIGN.md
+
+# Package artifacts
+*.tgz

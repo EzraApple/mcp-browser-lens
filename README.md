@@ -33,32 +33,44 @@ Turn any webpage into AI context instantly: *"Look at this Stripe pricing page a
 
 ## 🚀 Quick Start
 
-### 1. **Clone and Build**
+### **Simple NPM Installation** (Recommended)
+
+```json
+{
+  "mcpServers": {
+    "mcp-browser-lens": {
+      "command": "npx",
+      "args": ["-y", "mcp-browser-lens"],
+      "env": {}
+    }
+  }
+}
+```
+
+That's it! Just add this to your `mcp.json` and restart your AI assistant.
+
+### **Alternative: Local Development Setup**
+
+If you want to develop or contribute:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/mcp-browser-lens.git
+git clone https://github.com/EzraApple/mcp-browser-lens.git
 cd mcp-browser-lens
 
 # Install dependencies and build
 npm install
 npm run build
 
-# Get the absolute path for MCP config
-pwd
-# Copy this path - you'll need it for step 2
+# Use local version in mcp.json
 ```
-
-### 2. **Add to MCP Configuration**
-
-Add this to your `mcp.json` configuration file (replace `YOUR_PROJECT_PATH` with the path from step 1):
 
 ```json
 {
   "mcpServers": {
     "mcp-browser-lens": {
-      "command": "node",
-      "args": ["YOUR_PROJECT_PATH/mcp-browser-lens/dist/index.js"],
+      "command": "node", 
+      "args": ["/path/to/mcp-browser-lens/dist/index.js"],
       "env": {}
     }
   }
@@ -178,22 +190,6 @@ ls -la "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 - Combine screenshots with HTML extraction for comprehensive understanding
 
 ## 🚀 What's Next?
-
-### 📦 **NPM Publishing** (Coming Soon)
-Once published to NPM, setup will be even simpler:
-
-```json
-{
-  "mcpServers": {
-    "mcp-browser-lens": {
-      "command": "npx",
-      "args": ["-y", "mcp-browser-lens"]
-    }
-  }
-}
-```
-
-This will eliminate the need to clone and build locally!
 
 ### 🔮 **Future Enhancements**
 - **Multi-tab Screenshots**: Capture multiple tabs simultaneously

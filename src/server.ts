@@ -16,6 +16,7 @@ export class BrowserLensServer {
   private server: McpServer;
   private browserTools: BrowserTools | null = null;
   private isShuttingDown: boolean = false;
+  private chromeInitialized: boolean = false;
 
   constructor() {
     this.server = new McpServer(
@@ -44,6 +45,17 @@ export class BrowserLensServer {
       }
     }
     return this.browserTools;
+  }
+
+  /**
+   * Check if Chrome debugging is initialized and throw helpful error if not
+   */
+  private checkChromeInitialized(): void {
+    if (!this.chromeInitialized) {
+      throw new Error(
+        'Chrome debugging not initialized. Please call the "initialize_chrome_debugging" tool first to enable browser automation.'
+      );
+    }
   }
 
   /**
@@ -115,6 +127,72 @@ export class BrowserLensServer {
 
 
   private setupTools(): void {
+    // Initialize Chrome debugging for browser automation
+    this.server.tool(
+      'initialize_chrome_debugging',
+      'Start Chrome with debugging enabled for browser automation. Call this before using any browser tools.',
+      {
+        port: z.number().default(9222).describe('Port for Chrome debugging protocol'),
+        headless: z.boolean().default(false).describe('Run Chrome in headless mode'),
+      },
+      async ({ port, headless }) => {
+        return await this.safeExecute(async () => {
+          if (this.chromeInitialized) {
+            const message = 'Chrome debugging already initialized and running';
+            serverLog.info(message);
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: JSON.stringify({
+                    status: 'already_initialized',
+                    message,
+                    port,
+                    timestamp: Date.now()
+                  }, null, 2),
+                },
+              ],
+            };
+          }
+
+          const result = await chromeLauncher.ensureChromeDebugging();
+          
+          if (result.launched || result.wasRunning) {
+            this.chromeInitialized = true;
+            const message = result.launched 
+              ? '🚀 Chrome launched successfully with debugging enabled'
+              : '✅ Chrome already running with debugging enabled';
+            
+            serverLog.success(message);
+            if (result.welcomePageOpened) {
+              serverLog.success('📄 Welcome page opened - MCP capabilities explained to user');
+            }
+
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: JSON.stringify({
+                    status: 'success',
+                    message,
+                    port,
+                    launched: result.launched,
+                    wasRunning: result.wasRunning,
+                    welcomePageOpened: result.welcomePageOpened,
+                    timestamp: Date.now()
+                  }, null, 2),
+                },
+              ],
+            };
+          } else {
+            const errorMessage = `Failed to establish Chrome debugging connection: ${result.error}`;
+            serverLog.error(errorMessage);
+            throw new Error(errorMessage);
+          }
+        }, 'Initialize Chrome debugging');
+      }
+    );
+
     // List all open browser tabs
     this.server.tool(
       'list_tabs',
@@ -127,6 +205,7 @@ export class BrowserLensServer {
       },
       async ({ browserType }) => {
         return await this.safeExecute(async () => {
+          this.checkChromeInitialized();
           const tools = await this.getBrowserTools(browserType);
           const tabs = await tools.listTabs();
           
@@ -182,7 +261,8 @@ export class BrowserLensServer {
         prettify: z.boolean().default(true).describe('Pretty format the output'),
       },
       async ({ tabId, browserType, includeHTML, includeCSS, cssSelectors, includeStyles, includeScripts, prettify }) => {
-        try {
+        return await this.safeExecute(async () => {
+          this.checkChromeInitialized();
           const tools = await this.getBrowserTools(browserType);
           
           serverLog.info(`Capturing page content from tab ${tabId}`, { includeHTML, includeCSS, selectorCount: cssSelectors?.length || 0 });
@@ -230,22 +310,7 @@ export class BrowserLensServer {
               },
             ],
           };
-        } catch (error) {
-          serverLog.error(`Failed to capture page content from tab ${tabId}:`, error);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  error: 'Failed to capture page content',
-                  tabId,
-                  message: error instanceof Error ? error.message : String(error),
-                  timestamp: Date.now()
-                }, null, 2),
-              },
-            ],
-          };
-        }
+        }, 'Capture page content');
       }
     );
 
@@ -264,31 +329,34 @@ export class BrowserLensServer {
         quality: z.number().min(0).max(100).optional().describe('Image quality for lossy formats'),
       },
       async ({ tabId, browserType, fullPage, format, quality }) => {
-        const tools = await this.getBrowserTools(browserType);
-        const options: any = { format, fullPage };
-        if (quality !== undefined) {
-          options.quality = quality;
-        }
-        const screenshot = await tools.captureScreenshot(tabId, options);
+        return await this.safeExecute(async () => {
+          this.checkChromeInitialized();
+          const tools = await this.getBrowserTools(browserType);
+          const options: any = { format, fullPage };
+          if (quality !== undefined) {
+            options.quality = quality;
+          }
+          const screenshot = await tools.captureScreenshot(tabId, options);
 
-        return {
-          content: [
-            {
-              type: 'image',
-              data: screenshot,
-              mimeType: `image/${format}`
-            },
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                tabId: tabId,
-                format: format,
-                timestamp: Date.now()
-              }, null, 2),
-            },
-          ],
-        };
+          return {
+            content: [
+              {
+                type: 'image',
+                data: screenshot,
+                mimeType: `image/${format}`
+              },
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  success: true,
+                  tabId: tabId,
+                  format: format,
+                  timestamp: Date.now()
+                }, null, 2),
+              },
+            ],
+          };
+        }, 'Capture screenshot');
       }
     );
 
@@ -306,22 +374,25 @@ export class BrowserLensServer {
           .describe('Browser type that owns the tab - Chrome with auto-launch and debugging'),
       },
       async ({ tabId, browserType }) => {
-        const tools = await this.getBrowserTools(browserType);
-        await tools.setActiveTab(tabId);
+        return await this.safeExecute(async () => {
+          this.checkChromeInitialized();
+          const tools = await this.getBrowserTools(browserType);
+          await tools.setActiveTab(tabId);
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                tabId: tabId,
-                setAsActive: true,
-                timestamp: Date.now()
-              }, null, 2),
-            },
-          ],
-        };
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  success: true,
+                  tabId: tabId,
+                  setAsActive: true,
+                  timestamp: Date.now()
+                }, null, 2),
+              },
+            ],
+          };
+        }, 'Set active tab');
       }
     );
 
@@ -338,7 +409,8 @@ export class BrowserLensServer {
           .describe('Browser type that owns the tab - Chrome with auto-launch and debugging'),
       },
       async ({ tabId, selectors, browserType }) => {
-        try {
+        return await this.safeExecute(async () => {
+          this.checkChromeInitialized();
           const tools = await this.getBrowserTools(browserType);
           const elements = await tools.extractElements(tabId, selectors);
 
@@ -359,23 +431,7 @@ export class BrowserLensServer {
               },
             ],
           };
-        } catch (error) {
-          serverLog.error(`Failed to extract elements from tab ${tabId}:`, error);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  error: 'Failed to extract elements',
-                  tabId,
-                  selectors,
-                  message: error instanceof Error ? error.message : String(error),
-                  timestamp: Date.now()
-                }, null, 2),
-              },
-            ],
-          };
-        }
+        }, 'Extract elements');
       }
     );
 
@@ -400,7 +456,8 @@ export class BrowserLensServer {
           .describe('Browser type that owns the tab - Chrome with auto-launch and debugging'),
       },
       async ({ tabId, scrollType, x, y, selector, smooth, browserType }) => {
-        try {
+        return await this.safeExecute(async () => {
+          this.checkChromeInitialized();
           const tools = await this.getBrowserTools(browserType);
           
           // Build options object with only defined values
@@ -419,23 +476,7 @@ export class BrowserLensServer {
               },
             ],
           };
-        } catch (error) {
-          serverLog.error(`Failed to scroll page in tab ${tabId}:`, error);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  error: 'Failed to scroll page',
-                  tabId,
-                  scrollType,
-                  message: error instanceof Error ? error.message : String(error),
-                  timestamp: Date.now()
-                }, null, 2),
-              },
-            ],
-          };
-        }
+        }, 'Scroll page');
       }
     );
 
@@ -450,67 +491,41 @@ export class BrowserLensServer {
           .describe('Browser type to check - Chrome with auto-launch and debugging'),
       },
       async ({ browserType }) => {
-        const tools = await this.getBrowserTools(browserType);
-        const capabilities = tools.getCapabilities();
+        return await this.safeExecute(async () => {
+          this.checkChromeInitialized();
+          const tools = await this.getBrowserTools(browserType);
+          const capabilities = tools.getCapabilities();
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                browserType: tools.getBrowserType(),
-                capabilities: capabilities,
-                timestamp: Date.now()
-              }, null, 2),
-            },
-          ],
-        };
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  browserType: tools.getBrowserType(),
+                  capabilities: capabilities,
+                  timestamp: Date.now()
+                }, null, 2),
+              },
+            ],
+          };
+        }, 'Get browser capabilities');
       }
     );
   }
 
 
 
-  /**
-   * Initialize Chrome debugging before starting the MCP server
-   * Ensures Chrome is available for browser operations
-   */
-  private async initializeChromeDebugging(): Promise<void> {
-    try {
-      serverLog.debug('Initializing Chrome debugging for MCP Browser Lens...');
-      
-      const result = await chromeLauncher.ensureChromeDebugging();
-      
-      if (result.launched) {
-        serverLog.success('🚀 Chrome launched successfully with debugging enabled');
-        if (result.welcomePageOpened) {
-          serverLog.success('📄 Welcome page opened - MCP capabilities explained to user');
-        }
-      } else if (result.wasRunning) {
-        serverLog.success('✅ Chrome already running with debugging enabled');
-        if (result.welcomePageOpened) {
-          serverLog.success('📄 Welcome page opened in existing Chrome instance');
-        }
-      } else {
-        serverLog.error('❌ Failed to establish Chrome debugging connection:', result.error);
-        // Don't throw here - allow server to start anyway for manual Chrome setup
-        serverLog.debug('Server will continue - Chrome can be started manually if needed');
-      }
-    } catch (error) {
-      serverLog.error('Chrome initialization failed:', error);
-      // Continue anyway - allow fallback to manual Chrome setup
-      serverLog.debug('Continuing with server startup - Chrome debugging can be enabled manually');
-    }
-  }
+
 
   async run(): Promise<void> {
-    // Initialize Chrome debugging before starting MCP server
-    await this.initializeChromeDebugging();
+    // MCP server starts without auto-launching Chrome
+    // Chrome debugging can be initialized explicitly via the initialize_chrome_debugging tool
     
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     serverLog.success('🔍 MCP Browser Lens server running on stdio');
     serverLog.debug('Ready to assist with browser automation and web content analysis');
+    serverLog.info('💡 Use the "initialize_chrome_debugging" tool to enable browser automation');
   }
 }
 

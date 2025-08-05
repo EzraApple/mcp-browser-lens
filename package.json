@@ -15,7 +15,9 @@
     "format": "prettier --write src/**/*.ts",
     "type-check": "tsc --noEmit",
     "test": "jest",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run lint && npm run type-check && npm run test && npm run build",
+    "prepack": "npm run build"
   },
   "keywords": [
     "mcp",
@@ -26,8 +28,21 @@
     "devtools",
     "automation"
   ],
-  "author": "",
+  "author": "Ezra Apple <ezraapple.engineer@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EzraApple/mcp-browser-lens.git"
+  },
+  "homepage": "https://github.com/EzraApple/mcp-browser-lens#readme",
+  "bugs": {
+    "url": "https://github.com/EzraApple/mcp-browser-lens/issues"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
     "chrome-remote-interface": "^0.33.2",
