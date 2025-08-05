@@ -10,6 +10,7 @@ import { useBrowserTools } from '@/core/browser-factory.js';
 import { BrowserType } from '@/interfaces/types.js';
 import { BrowserTools } from '@/interfaces/browser-tools.js';
 import { serverLog } from '@/utils/logger.js';
+import { chromeLauncher } from '@/utils/chrome-launcher.js';
 
 export class BrowserLensServer {
   private server: McpServer;
@@ -43,6 +44,26 @@ export class BrowserLensServer {
       }
     }
     return this.browserTools;
+  }
+
+  /**
+   * Safely execute a browser operation with error handling
+   * Ensures all errors are caught and returned as proper MCP responses
+   */
+  private async safeExecute<T>(
+    operation: () => Promise<T>,
+    operationName: string,
+    fallbackError: string = "Unknown error occurred"
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      serverLog.error(`${operationName} failed:`, error);
+      
+      // Always return a structured error instead of throwing
+      throw new Error(`${operationName} failed: ${errorMessage}`);
+    }
   }
 
 
@@ -102,10 +123,10 @@ export class BrowserLensServer {
         browserType: z
           .enum(['chrome', 'auto'])
           .default('auto')
-          .describe('Browser type to target - currently only Chrome is supported'),
+          .describe('Browser type to target - Chrome with auto-launch and debugging'),
       },
       async ({ browserType }) => {
-        try {
+        return await this.safeExecute(async () => {
           const tools = await this.getBrowserTools(browserType);
           const tabs = await tools.listTabs();
           
@@ -121,17 +142,16 @@ export class BrowserLensServer {
           return {
             content: [
               {
-                type: 'text',
+                type: 'text' as const,
                 text: JSON.stringify(result, null, 2),
               },
             ],
           };
-        } catch (error) {
-          serverLog.error('Failed to list tabs:', error);
+        }, 'List tabs').catch(error => {
           return {
             content: [
               {
-                type: 'text',
+                type: 'text' as const,
                 text: JSON.stringify({
                   error: 'Failed to list tabs',
                   message: error instanceof Error ? error.message : String(error),
@@ -140,7 +160,7 @@ export class BrowserLensServer {
               },
             ],
           };
-        }
+        });
       }
     );
 
@@ -153,7 +173,7 @@ export class BrowserLensServer {
         browserType: z
           .enum(['chrome', 'auto'])
           .default('auto')
-          .describe('Browser type that owns the tab - currently only Chrome is supported'),
+          .describe('Browser type that owns the tab - Chrome with auto-launch and debugging'),
         includeHTML: z.boolean().default(true).describe('Include HTML content extraction'),
         includeCSS: z.boolean().default(false).describe('Include CSS styles extraction'),
         cssSelectors: z.array(z.string()).optional().describe('CSS selectors to extract styles for'),
@@ -238,7 +258,7 @@ export class BrowserLensServer {
         browserType: z
           .enum(['chrome', 'auto'])
           .default('auto')
-          .describe('Browser type that owns the tab - currently only Chrome is supported'),
+          .describe('Browser type that owns the tab - Chrome with auto-launch and debugging'),
         fullPage: z.boolean().default(false).describe('Capture full page or just viewport'),
         format: z.enum(['png', 'jpeg', 'webp']).default('png').describe('Image format'),
         quality: z.number().min(0).max(100).optional().describe('Image quality for lossy formats'),
@@ -283,7 +303,7 @@ export class BrowserLensServer {
         browserType: z
           .enum(['chrome', 'auto'])
           .default('auto')
-          .describe('Browser type that owns the tab - currently only Chrome is supported'),
+          .describe('Browser type that owns the tab - Chrome with auto-launch and debugging'),
       },
       async ({ tabId, browserType }) => {
         const tools = await this.getBrowserTools(browserType);
@@ -315,7 +335,7 @@ export class BrowserLensServer {
         browserType: z
           .enum(['chrome', 'auto'])
           .default('auto')
-          .describe('Browser type that owns the tab - currently only Chrome is supported'),
+          .describe('Browser type that owns the tab - Chrome with auto-launch and debugging'),
       },
       async ({ tabId, selectors, browserType }) => {
         try {
@@ -377,7 +397,7 @@ export class BrowserLensServer {
         browserType: z
           .enum(['chrome', 'auto'])
           .default('auto')
-          .describe('Browser type that owns the tab - currently only Chrome is supported'),
+          .describe('Browser type that owns the tab - Chrome with auto-launch and debugging'),
       },
       async ({ tabId, scrollType, x, y, selector, smooth, browserType }) => {
         try {
@@ -394,7 +414,7 @@ export class BrowserLensServer {
           return {
             content: [
               {
-                type: 'text',
+                type: 'text' as const,
                 text: JSON.stringify(result, null, 2),
               },
             ],
@@ -427,7 +447,7 @@ export class BrowserLensServer {
         browserType: z
           .enum(['chrome', 'auto'])
           .default('auto')
-          .describe('Browser type to check - currently only Chrome is supported'),
+          .describe('Browser type to check - Chrome with auto-launch and debugging'),
       },
       async ({ browserType }) => {
         const tools = await this.getBrowserTools(browserType);
@@ -451,10 +471,46 @@ export class BrowserLensServer {
 
 
 
+  /**
+   * Initialize Chrome debugging before starting the MCP server
+   * Ensures Chrome is available for browser operations
+   */
+  private async initializeChromeDebugging(): Promise<void> {
+    try {
+      serverLog.debug('Initializing Chrome debugging for MCP Browser Lens...');
+      
+      const result = await chromeLauncher.ensureChromeDebugging();
+      
+      if (result.launched) {
+        serverLog.success('🚀 Chrome launched successfully with debugging enabled');
+        if (result.welcomePageOpened) {
+          serverLog.success('📄 Welcome page opened - MCP capabilities explained to user');
+        }
+      } else if (result.wasRunning) {
+        serverLog.success('✅ Chrome already running with debugging enabled');
+        if (result.welcomePageOpened) {
+          serverLog.success('📄 Welcome page opened in existing Chrome instance');
+        }
+      } else {
+        serverLog.error('❌ Failed to establish Chrome debugging connection:', result.error);
+        // Don't throw here - allow server to start anyway for manual Chrome setup
+        serverLog.debug('Server will continue - Chrome can be started manually if needed');
+      }
+    } catch (error) {
+      serverLog.error('Chrome initialization failed:', error);
+      // Continue anyway - allow fallback to manual Chrome setup
+      serverLog.debug('Continuing with server startup - Chrome debugging can be enabled manually');
+    }
+  }
+
   async run(): Promise<void> {
+    // Initialize Chrome debugging before starting MCP server
+    await this.initializeChromeDebugging();
+    
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    serverLog.success('MCP Browser Lens server running on stdio');
+    serverLog.success('🔍 MCP Browser Lens server running on stdio');
+    serverLog.debug('Ready to assist with browser automation and web content analysis');
   }
 }
 

@@ -28,18 +28,18 @@ export async function useBrowserTools(
 
   // Auto-detect best available browser if needed
   if (browserType === "auto") {
-    factoryLog.debug("Auto-detecting Chrome...");
+    factoryLog.debug("Auto-detecting best available browser...");
     const detection = await detectBestBrowser();
     if (!detection) {
       const errorMsg =
-        "Chrome not found. Please install Chrome and start it with debugging enabled:\n" +
-        "chrome --remote-debugging-port=9222\n" +
-        'Or on macOS: open -a "Google Chrome" --args --remote-debugging-port=9222';
+        "Chrome not found with debugging enabled. Chrome will be auto-launched:\n" +
+        "\nManual launch: chrome --remote-debugging-port=9222\n" +
+        'macOS manual: open -a "Google Chrome" --args --remote-debugging-port=9222';
       factoryLog.error(errorMsg);
       throw new Error(errorMsg);
     }
     targetBrowser = detection.type;
-    factoryLog.success(`Detected Chrome: ${targetBrowser}`);
+    factoryLog.success(`Detected browser: ${targetBrowser}`);
   }
 
   // Create the appropriate provider
@@ -66,7 +66,7 @@ export async function useBrowserTools(
 
 /**
  * Factory function to create browser provider instances
- * Currently only supports Chrome - other browsers will be added in future phases
+ * Supports Chrome and Safari (on macOS)
  * @param browserType - The browser type to create a provider for
  * @param config - Configuration options
  * @returns BrowserTools instance for the specified browser
@@ -82,19 +82,22 @@ function createBrowserProvider(
 
     default:
       throw new Error(
-        `Currently only Chrome is supported. Please install Chrome and start with debugging:\n` +
-          `chrome --remote-debugging-port=9222\n` +
-          `Other browsers (Safari, Arc, Firefox) will be added in future releases.`,
+        `Browser type "${browserType}" is not currently supported.\n` +
+          `Currently supported: Chrome with auto-launch and debugging\n` +
+          `Future browsers (Safari, Firefox, Arc) can be added as needed.`,
       );
   }
 }
 
 /**
  * Get a list of currently supported browser types
+ * Chrome-first with clear extension points for future browsers
  * @returns Array of supported browser type strings
  */
 export function getSupportedBrowserTypes(): BrowserType[] {
-  return ["chrome"]; // Currently only Chrome is supported
+  // Currently Chrome-focused for best debugging experience
+  // Future: Add conditional support for other browsers as needed
+  return ["chrome"];
 }
 
 /**

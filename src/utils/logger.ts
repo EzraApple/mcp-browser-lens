@@ -49,11 +49,11 @@ class Logger {
   }
 
   /**
-   * Success logging - only shown in development
+   * Success logging - only shown in development (uses stderr to avoid MCP protocol interference)
    */
   success(prefix: string, message: string, ...args: unknown[]): void {
     if (this.isDevelopment) {
-      console.log(`[${prefix}] ✅ ${message}`, ...args);
+      console.error(`[${prefix}] ✅ ${message}`, ...args);
     }
   }
 
@@ -104,6 +104,10 @@ export const factoryLog = {
   error: (message: string, ...args: unknown[]) =>
     logger.error("BROWSER-FACTORY", message, ...args),
 };
+
+// Future: Browser-specific loggers can be added here
+// export const safariLog = { ... };
+// export const firefoxLog = { ... };
 
 export const serverLog = {
   debug: (message: string, ...args: unknown[]) =>

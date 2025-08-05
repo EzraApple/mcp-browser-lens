@@ -11,14 +11,14 @@ import {
 import { browserLog } from "@/utils/logger.js";
 
 /**
- * Detect Chrome with DevTools Protocol enabled
+ * Detect Chrome with debugging enabled
+ * Chrome-first approach with clear extension point for future browsers
  * @returns Promise resolving to Chrome detection result, or null if not available
  */
 export async function detectBestBrowser(): Promise<BrowserDetectionResult | null> {
   browserLog.debug("Detecting Chrome with debugging enabled...");
 
   const chromeResult = await detectSingleBrowser("chrome");
-
   if (chromeResult) {
     browserLog.success(
       `Chrome detected: ${chromeResult.name} v${chromeResult.version}`,
@@ -26,57 +26,73 @@ export async function detectBestBrowser(): Promise<BrowserDetectionResult | null
     return chromeResult;
   }
 
-  browserLog.error("Chrome not detected or debugging not enabled");
+  browserLog.error("Chrome not detected - auto-launch will handle this");
   return null;
 }
 
 /**
  * Detect Chrome availability for MCP operations
- * @returns Promise resolving to Chrome detection result in array format (for compatibility)
+ * Chrome-focused with framework for future browser expansion
+ * @returns Promise resolving to browser detection results in array format
  */
 export async function detectAllBrowsers(): Promise<BrowserDetectionResult[]> {
   browserLog.debug("Checking for Chrome with debugging enabled...");
 
+  const results: BrowserDetectionResult[] = [];
+
   try {
+    // Check Chrome (primary supported browser)
     const chromeResult = await detectSingleBrowser("chrome");
     if (chromeResult) {
       browserLog.success("Chrome detected and ready");
-      return [chromeResult];
+      results.push(chromeResult);
     } else {
-      browserLog.debug("Chrome not available");
-      return [];
+      browserLog.debug("Chrome not available - auto-launch will handle this");
     }
+
+    // Future: Add other browser detection here as needed
+    // if (shouldCheckSafari) { ... }
+    // if (shouldCheckFirefox) { ... }
+
+    return results;
   } catch (error) {
     browserLog.error(
       `Failed to detect Chrome: ${error instanceof Error ? error.message : String(error)}`,
     );
-    return [];
+    return results;
   }
 }
 
 /**
- * Detect Chrome availability and debugging status
- * @param browserType - Must be 'chrome' (other browsers not currently supported)
- * @returns Promise resolving to Chrome detection result or null if not available
+ * Detect browser availability and debugging status
+ * Currently Chrome-focused with extension point for future browsers
+ * @param browserType - Browser type to detect (currently only 'chrome')
+ * @returns Promise resolving to browser detection result or null if not available
  */
 async function detectSingleBrowser(
   browserType: BrowserType,
 ): Promise<BrowserDetectionResult | null> {
-  // Only support Chrome for now
-  if (browserType !== "chrome") {
-    browserLog.debug(
-      `${browserType} not supported in Chrome-first development phase`,
-    );
+  if (browserType === "chrome") {
+    return await detectChrome();
+  } else if (browserType === "auto") {
+    // Auto defaults to Chrome for best experience
+    return await detectChrome();
+  } else {
+    browserLog.debug(`${browserType} detection not implemented yet - Chrome recommended`);
     return null;
   }
+}
 
+/**
+ * Detect Chrome with DevTools Protocol
+ */
+async function detectChrome(): Promise<BrowserDetectionResult | null> {
   const debugPort = 9222; // Chrome DevTools Protocol standard port
   const url = `http://localhost:${debugPort}/json/version`;
 
   browserLog.debug(`Testing Chrome DevTools Protocol on port ${debugPort}...`);
 
   try {
-    // Check if Chrome is running with debug port open
     browserLog.debug(`Fetching: ${url}`);
     const response = await fetch(url, {
       signal: AbortSignal.timeout(2000), // 2 second timeout
@@ -112,6 +128,7 @@ async function detectSingleBrowser(
 
   return null;
 }
+
 
 /**
  * Generate Chrome capability score for current setup
@@ -211,9 +228,12 @@ Or add --remote-debugging-port=9222 to your Chrome startup script.`;
 
 
 
+
+
 /**
- * Get Chrome-specific platform capabilities for the current system
- * @returns Platform capabilities object focused on Chrome support
+ * Get platform capabilities for the current system
+ * Chrome-focused with clear extension points for future browsers
+ * @returns Platform capabilities object with browser support info
  */
 export function getPlatformCapabilities(): PlatformCapabilities {
   const platform = process.platform;
@@ -227,7 +247,7 @@ export function getPlatformCapabilities(): PlatformCapabilities {
     case "darwin": // macOS
       return {
         platform: "macos",
-        supportedBrowsers: ["chrome"],
+        supportedBrowsers: ["chrome"], // Safari can be added later if needed
         features: {
           hasAppleScript: true,
           hasNativeScreenCapture: true,
@@ -238,15 +258,13 @@ export function getPlatformCapabilities(): PlatformCapabilities {
             installPaths: [
               "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
               "/usr/local/bin/google-chrome",
+              "/opt/homebrew/bin/google-chrome",
             ],
             processNames: ["Google Chrome", "chrome"],
           },
-          // Placeholder configs for future browser support
-          safari: { installPaths: [], processNames: [] },
-          firefox: { installPaths: [], processNames: [] },
-          arc: { installPaths: [], processNames: [] },
-          zen: { installPaths: [], processNames: [] },
-          auto: { installPaths: [], processNames: [] },
+          // Extension point: Future browsers can be added here
+          // safari: { defaultPort: 9230, ... },
+          // firefox: { defaultPort: 6000, ... },
         },
       };
 
@@ -266,12 +284,7 @@ export function getPlatformCapabilities(): PlatformCapabilities {
             ],
             processNames: ["chrome.exe", "Google Chrome"],
           },
-          // Placeholder configs for future browser support
-          safari: { installPaths: [], processNames: [] },
-          firefox: { installPaths: [], processNames: [] },
-          arc: { installPaths: [], processNames: [] },
-          zen: { installPaths: [], processNames: [] },
-          auto: { installPaths: [], processNames: [] },
+          // Extension point: Future browsers can be added here
         },
       };
 
@@ -292,12 +305,7 @@ export function getPlatformCapabilities(): PlatformCapabilities {
             ],
             processNames: ["chrome", "google-chrome", "chromium-browser"],
           },
-          // Placeholder configs for future browser support
-          safari: { installPaths: [], processNames: [] },
-          firefox: { installPaths: [], processNames: [] },
-          arc: { installPaths: [], processNames: [] },
-          zen: { installPaths: [], processNames: [] },
-          auto: { installPaths: [], processNames: [] },
+          // Extension point: Future browsers can be added here
         },
       };
   }

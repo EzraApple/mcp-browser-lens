@@ -66,7 +66,7 @@ export interface PlatformCapabilities {
   };
   /** Platform-specific browser configurations */
   browserConfigs: Record<
-    BrowserType,
+    Exclude<BrowserType, "auto">, // "auto" is not a real browser, exclude it
     {
       /** Default debug port */
       defaultPort?: number;
@@ -129,8 +129,6 @@ export const FALLBACK_CAPABILITIES: BrowserCapabilities = {
 
 export type BrowserType =
   | "chrome"
-  | "safari"
-  | "firefox"
-  | "arc"
-  | "zen"
   | "auto";
+  // Future browsers can be added here:
+  // | "safari" | "firefox" | "arc" | "zen"

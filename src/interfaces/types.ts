@@ -99,7 +99,7 @@ export interface CaptureResult {
 
 export type BrowserType = "chrome" | "auto";
 
-// Future browser types (to be enabled in later phases):
+// Future browser types (can be enabled as needed):
 // | 'safari' | 'firefox' | 'arc' | 'zen'
 
 export interface BrowserDetectionResult {
