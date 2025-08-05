@@ -1,8 +1,25 @@
 # 🔍 MCP Browser Lens
 
-**AI-powered browser automation and visual inspection** - Give your AI assistant eyes to see, capture, and analyze any webpage. Zero setup required with automatic Chrome integration.
+**AI-powered browser automation and visual inspection** - Give your AI assistant eyes to see, capture, and analyze any webpage. One-line installation with automatic Chrome integration.
 
 Turn any webpage into AI context instantly: *"Look at this Stripe pricing page and help me build something similar"* or *"Compare my localhost dashboard with this Notion page design"*.
+
+## 🚀 **One-Line Installation**
+
+Just add this to your `mcp.json` and restart your AI assistant:
+
+```json
+{
+  "mcpServers": {
+    "mcp-browser-lens": {
+      "command": "npx",
+      "args": ["-y", "mcp-browser-lens"]
+    }
+  }
+}
+```
+
+**That's it!** No cloning, no building, no setup required.
 
 ## ✨ Features
 
@@ -31,55 +48,9 @@ Turn any webpage into AI context instantly: *"Look at this Stripe pricing page a
 - **Design Inspiration**: Analyze production sites to inform your own designs  
 - **Component Extraction**: Pull specific UI patterns and styles for reference
 
-## 🚀 Quick Start
+## ⚡ **What Happens Next?**
 
-### **Simple NPM Installation** (Recommended)
-
-```json
-{
-  "mcpServers": {
-    "mcp-browser-lens": {
-      "command": "npx",
-      "args": ["-y", "mcp-browser-lens"],
-      "env": {}
-    }
-  }
-}
-```
-
-That's it! Just add this to your `mcp.json` and restart your AI assistant.
-
-### **Alternative: Local Development Setup**
-
-If you want to develop or contribute:
-
-```bash
-# Clone the repository
-git clone https://github.com/EzraApple/mcp-browser-lens.git
-cd mcp-browser-lens
-
-# Install dependencies and build
-npm install
-npm run build
-
-# Use local version in mcp.json
-```
-
-```json
-{
-  "mcpServers": {
-    "mcp-browser-lens": {
-      "command": "node", 
-      "args": ["/path/to/mcp-browser-lens/dist/index.js"],
-      "env": {}
-    }
-  }
-}
-```
-
-### 3. **Restart Your AI Assistant**
-
-That's it! When you restart your AI assistant (Cursor, etc.):
+When you restart your AI assistant (Cursor, etc.):
 
 ✅ **MCP Browser Lens will automatically:**
 - Detect if Chrome is running with debugging
@@ -188,6 +159,31 @@ ls -la "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 - Open multiple related pages for comparative analysis
 - Use tab listing to let AI understand your research context
 - Combine screenshots with HTML extraction for comprehensive understanding
+
+## 👩‍💻 **Development & Contributing**
+
+Want to contribute or run locally? 
+
+```bash
+# Clone and setup
+git clone https://github.com/EzraApple/mcp-browser-lens.git
+cd mcp-browser-lens
+npm install
+npm run build
+```
+
+Then use the local version in your `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "mcp-browser-lens": {
+      "command": "node",
+      "args": ["/path/to/mcp-browser-lens/dist/index.js"]
+    }
+  }
+}
+```
 
 ## 🚀 What's Next?
 
