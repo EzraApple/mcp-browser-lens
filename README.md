@@ -21,33 +21,6 @@ Just add this to your `mcp.json` and restart your AI assistant:
 
 **That's it!** No cloning, no building, no setup required.
 
-## ✨ Features
-
-### 🚀 **Zero Configuration Setup**
-- **Auto-Launch Chrome**: Automatically starts Chrome with debugging if not running
-- **Welcome Page**: Beautiful onboarding page explaining all capabilities  
-- **Instant Ready**: No manual Chrome setup - just restart your AI assistant
-
-### 🖼️ **Visual Browser Access**
-- **Screenshot Capture**: High-quality screenshots of any browser tab
-- **Live Tab Inspection**: See exactly what's in any open browser tab
-- **Design Analysis**: Let AI analyze layouts, color schemes, and component patterns
-
-### 🔍 **Content Extraction**  
-- **HTML Extraction**: Pull clean HTML structure from any page
-- **CSS Analysis**: Extract computed styles and design systems
-- **Element Details**: Get detailed info about specific page elements using CSS selectors
-
-### 🎯 **Smart Navigation & Control**
-- **Tab Management**: List, switch between, and capture specific tabs
-- **Page Scrolling**: Scroll to specific elements or positions for better captures
-- **Safe Tab Switching**: Switch tabs without unwanted navigation
-
-### 🛠️ **Developer-Focused**
-- **Localhost Support**: Perfect for capturing your local development environments
-- **Design Inspiration**: Analyze production sites to inform your own designs  
-- **Component Extraction**: Pull specific UI patterns and styles for reference
-
 ## ⚡ **What Happens Next?**
 
 When you restart your AI assistant (Cursor, etc.):
