@@ -119,23 +119,6 @@ ls -la "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 - Ensure localhost development servers are responsive
 - Try smaller screenshot areas using element selectors
 
-## 🎯 Best Practices
-
-### **For Web Development**
-- Keep your localhost development server running
-- Use descriptive tab titles for easier AI identification
-- Open design inspiration in separate tabs for comparison
-
-### **For Design Analysis**
-- Navigate to the specific page/component before asking for analysis
-- Use element extraction for specific UI components
-- Take screenshots at different scroll positions for full page capture
-
-### **For Content Research**
-- Open multiple related pages for comparative analysis
-- Use tab listing to let AI understand your research context
-- Combine screenshots with HTML extraction for comprehensive understanding
-
 ## 👩‍💻 **Development & Contributing**
 
 Want to contribute or run locally? 
